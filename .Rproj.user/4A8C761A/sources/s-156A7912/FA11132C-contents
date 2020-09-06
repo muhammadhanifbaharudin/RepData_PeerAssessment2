@@ -1,0 +1,81 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(magrittr)
+library(plotly)
+library(Hmisc)
+```
+
+## Loading and preprocessing the data
+```{r data}
+if(!dir.exists("data")){dir.create("data")}
+fileurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(fileurl, destfile = "data/projectdataset.zip")
+unzip(zipfile = "data/projectdataset.zip", exdir = "./data")
+df = read.csv("data/activity.csv")
+df$steps %<>% as.numeric
+```
+
+## What is the mean total number of steps taken per day?
+```{r mean}
+df2 = df %>% group_by(date) %>% summarise(sum = sum(steps))
+png("plot1.png", width=480, height=480)
+hist(df2$sum, border = "dark blue", col = "light blue", main = "Histogram of Total Number of Steps/Day", xlab = "Total Number of Steps/Day")
+dev.off()
+df2 = df2 %>% filter(!is.na(sum))
+```
+
+```{r cat1, echo = FALSE}
+cat("Mean total number of steps/day =", mean(df2$sum),"\n")
+cat("Median total number of steps/day =", median(df2$sum))
+```
+
+## What is the average daily activity pattern?
+```{r timeseries, message=FALSE, warning=FALSE}
+dftime = df %>% filter(!is.na(steps)) %>% group_by(interval) %>% summarise(steps = mean(steps))
+png("plot2.png", width=480, height=480)
+dftime %>% plot_ly(x = ~interval, y = ~steps, mode = 'lines')
+dev.off()
+```
+
+```{r cat2, echo = FALSE}
+cat("The 5-minute interval that contains the maximum number of steps =",dftime$interval[grepl(max(dftime$steps), dftime$steps)])
+```
+
+## Imputing missing values
+```{r cat3, echo = FALSE}
+cat("Total Number of NAs in the Data =",nrow(df[is.na(df),]))
+```
+
+```{r impute, message=FALSE, warning=FALSE}
+dfimpute = df
+dfimpute$steps <- with(df, impute(steps, mean))
+dfimpute2 = dfimpute %>% group_by(date) %>% summarise(steps = sum(steps))
+png("plot3.png", width=480, height=480)
+hist(dfimpute2$steps, border = "dark blue", col = "light blue", main = "Histogram of Total Number of Steps/Day After Imputing Missing Values", xlab = "Total Number of Steps/Day", ylab = "Days")
+dev.off()
+```
+
+```{r cat4, echo = FALSE}
+cat("Mean total number of steps/day after imputing missing values =", mean(dfimpute2$steps),"\n")
+cat("Median total number of steps/day after imputing missing values =", median(dfimpute2$steps))
+```
+
+The mean is the same as before because the mean was used to impute the missing values. The median has become the same as the mean because of the high occurence of the mean value in the imputed data.
+
+## Are there differences in activity patterns between weekdays and weekends?
+```{r week, message=FALSE, warning=FALSE}
+dfimpute$date %<>% as.Date()
+dfweek = dfimpute %>% mutate(day_type = ifelse(grepl("Saturday|Sunday",weekdays(date)), "Weekend", "Weekday"))
+dfweek = dfweek %>% group_by(day_type,interval) %>% summarise(steps = mean(steps))
+png("plot4.png", width=480, height=480)
+plotly::subplot(plot_ly(dfweek %>% filter(day_type == "Weekday"), x = ~interval, y = ~steps) %>% add_lines(name = ~"Weekdays"), plot_ly(dfweek %>% filter(day_type == "Weekend"), x = ~interval, y = ~steps) %>% add_lines(name = ~"Weekends"))
+dev.off()
+```

@@ -1,0 +1,7 @@
+"0","property_data_exp = df_raw %>%"
+"0","  group_by(PROPDMGEXP) %>%"
+"0","  summarise(property_damage_per_exp = sum(PROPDMG)) %>%"
+"0","  arrange(PROPDMGEXP)"
+"0","print(xtable(property_data_exp), type=""html"")"
+"2","Error in xtable(property_data_exp) : could not find function ""xtable""
+"

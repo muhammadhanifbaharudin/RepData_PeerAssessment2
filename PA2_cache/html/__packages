@@ -1,0 +1,9 @@
+base
+knitr
+dplyr
+lubridate
+zoo
+xts
+TTR
+quantmod
+xtable
